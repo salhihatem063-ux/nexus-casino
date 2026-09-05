@@ -219,10 +219,10 @@ class GameClient {
       user_code: userCode,
       provider_code: providerCode,
       lang,
-      lobby_url: lobbyUrl || '',
     };
-    if (!live) payload.game_code = gameCode;
-    else if (gameCode) payload.game_code = gameCode; // live: game_code اختياري
+    // lobby_url فارغ = "Invalid Parameter" من المزوّد — نرسله فقط إن كان رابطاً صالحاً
+    if (lobbyUrl && /^https?:\/\//.test(lobbyUrl)) payload.lobby_url = lobbyUrl;
+    if (gameCode) payload.game_code = gameCode;
     if (rtp) payload.rtp = rtp;
     return this._call('game_launch', payload);
   }

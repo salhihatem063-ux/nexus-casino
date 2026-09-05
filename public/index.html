@@ -3,66 +3,85 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>الكازينو — الألعاب</title>
+<title>الكازينو</title>
 <style>
-  :root{--bg:#0a0c12;--card:#141824;--card2:#1c2233;--accent:#e6b143;--ok:#3fd17e;--err:#ff6b6b;--txt:#eef1f8;--muted:#8b93ab;--line:#262d40}
+  :root{--bg:#0a0c12;--card:#141824;--card2:#1c2233;--accent:#e6b143;--ok:#3fd17e;--err:#ff6b6b;--blu:#5b9dff;--txt:#eef1f8;--muted:#8b93ab;--line:#262d40}
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Segoe UI',Tahoma,sans-serif;background:radial-gradient(1100px 500px at 80% -10%,#1a2138,var(--bg));color:var(--txt);min-height:100vh}
   header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;padding:14px 20px;background:rgba(10,12,18,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
   .logo{font-size:20px;font-weight:800;color:var(--accent)}
   .right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .bal{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:9px 15px;font-weight:800}
-  .bal b{color:var(--ok)}
+  .bal b{color:var(--ok)}.bal b.zero{color:var(--err)}
   .inp{padding:10px 14px;border-radius:11px;border:1px solid var(--line);background:var(--card);color:var(--txt);font-family:inherit}
-  .search{min-width:220px}
+  .btn{padding:9px 16px;border:0;border-radius:10px;background:var(--accent);color:#1a1300;font-weight:800;cursor:pointer;font-family:inherit;text-decoration:none;font-size:14px}
+  .search{min-width:200px}
   .wrap{max-width:1250px;margin:0 auto;padding:20px}
-  .providers{display:flex;gap:9px;overflow-x:auto;padding:6px 2px 16px;scrollbar-width:thin}
+  .providers{display:flex;gap:9px;overflow-x:auto;padding:6px 2px 16px}
   .prov{flex:0 0 auto;padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer;font-weight:700;font-size:13px;white-space:nowrap}
   .prov.active{background:var(--accent);color:#1a1300;border-color:var(--accent)}
   .meta{color:var(--muted);font-size:13px;margin:4px 2px 16px}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px}
   .g{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:.15s;position:relative}
-  .g:hover{transform:translateY(-5px);border-color:var(--accent);box-shadow:0 10px 30px rgba(0,0,0,.4)}
-  .g img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;background:linear-gradient(135deg,#232a3f,#10131d)}
+  .g:hover{transform:translateY(-5px);border-color:var(--accent)}
+  .g img{width:100%;aspect-ratio:1/1;object-fit:cover;background:linear-gradient(135deg,#232a3f,#10131d)}
   .g .ph{width:100%;aspect-ratio:1/1;display:grid;place-items:center;font-size:44px;background:linear-gradient(135deg,#232a3f,#10131d)}
-  .g .in{padding:9px 11px}
-  .g .t{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .g .p{font-size:11px;color:var(--muted);margin-top:2px}
-  .g .play{position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,12,18,.55);opacity:0;transition:.15s;font-size:38px}
-  .g:hover .play{opacity:1}
+  .g .in{padding:9px 11px}.g .t{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.g .p{font-size:11px;color:var(--muted);margin-top:2px}
+  .g .play{position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,12,18,.55);opacity:0;transition:.15s;font-size:38px}.g:hover .play{opacity:1}
   .loading{text-align:center;padding:60px;color:var(--muted)}
-  /* مشغّل اللعبة */
+  /* شاشة الدخول */
+  #login{position:fixed;inset:0;background:rgba(8,10,16,.96);display:flex;align-items:center;justify-content:center;z-index:40;padding:20px}
+  .box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px;width:100%;max-width:380px}
+  .box h1{font-size:20px;color:var(--accent);margin-bottom:6px}.box .sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+  .box label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
+  .box input{width:100%;padding:12px;border-radius:11px;border:1px solid var(--line);background:var(--bg);color:var(--txt);font-family:inherit}
+  .box .btn{width:100%;margin-top:18px;padding:13px}
+  .err{color:var(--err);font-size:13px;margin-top:12px;min-height:16px}
+  /* مشغل اللعبة */
   #player{position:fixed;inset:0;background:#000;z-index:50;display:none;flex-direction:column}
   #player.show{display:flex}
-  .pbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;background:#0c0f17;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .pbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;background:#0c0f17;border-bottom:1px solid var(--line)}
   #frame{flex:1;width:100%;border:0}
-  .btn{padding:9px 16px;border:0;border-radius:10px;background:var(--accent);color:#1a1300;font-weight:800;cursor:pointer;font-family:inherit}
   .banner{background:#1a1407;border:1px solid #4a3a12;color:#e8c97a;border-radius:11px;padding:11px 14px;font-size:13px;margin:0 2px 16px;line-height:1.7}
-  .zero{color:var(--err);font-weight:800}
-  .ok{color:var(--ok)}
 </style>
 </head>
 <body>
+
 <header>
   <div class="logo">🎰 الكازينو</div>
-  <div class="right">
-    <input class="inp search" id="q" placeholder="🔍 ابحث عن لعبة…"/>
-    <div class="bal" id="bal">الرصيد: <b>—</b></div>
-    <a class="btn" href="/admin" style="text-decoration:none;font-size:13px">لوحة الوكيل</a>
+  <div class="right" id="hdr" style="display:none">
+    <input class="inp search" id="q" placeholder="🔍 بحث عن لعبة…"/>
+    <div class="bal">الرصيد: <b id="bal">0</b></div>
+    <span class="inp" style="background:var(--card2)" id="whoami"></span>
+    <button class="btn" style="background:var(--card2);color:var(--txt);border:1px solid var(--line)" onclick="logout()">خروج</button>
+    <a class="btn" href="/admin" style="font-size:12px">لوحة الوكيل</a>
   </div>
 </header>
 
-<div class="wrap">
+<div id="login">
+  <div class="box">
+    <h1>🎰 الدخول إلى الكازينو</h1>
+    <div class="sub">أدخل كود الحساب الذي أنشأه لك الوكيل.</div>
+    <label>كود الحساب</label>
+    <input id="lcode" placeholder="مثال: player01"/>
+    <label>كلمة المرور (إن وُجدت)</label>
+    <input id="lpw" type="password" placeholder="اتركها فارغة إن لم تكن مطلوبة"/>
+    <button class="btn" onclick="login()">دخول</button>
+    <div class="err" id="lerr"></div>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none">
   <div class="banner" id="banner" style="display:none"></div>
-  <div class="providers" id="providers"><div class="loading">جارٍ تحميل المزودين…</div></div>
+  <div class="providers" id="providers"></div>
   <div class="meta" id="meta">—</div>
-  <div class="grid" id="grid"><div class="loading" style="grid-column:1/-1">جارٍ تحميل الألعاب…</div></div>
+  <div class="grid" id="grid"></div>
 </div>
 
 <div id="player">
   <div class="pbar">
     <span id="gameName" style="font-weight:800"></span>
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:8px;align-items:center">
       <span id="pBal" style="color:var(--muted);font-size:13px"></span>
       <button class="btn" onclick="closeGame()">✕ خروج</button>
     </div>
@@ -71,120 +90,106 @@
 </div>
 
 <script>
-// هوية اللاعب — مخزّنة محلياً (في الإنتاج تربطها بحسابك). كل لاعب جديد يبدأ رصيده 0.
-let USER = localStorage.getItem('playerCode');
-if(!USER){ USER = 'p_' + Math.random().toString(36).slice(2,10); localStorage.setItem('playerCode', USER); }
-
-let providers = [], games = [], curProv = 'ALL', balance = null;
 const $=id=>document.getElementById(id);
+let CODE=null, providers=[], games=[], curProv='ALL', balance=0;
 
-function banner(msg, kind){
-  const b=$('banner'); b.style.display='block';
-  b.style.borderColor = kind==='err' ? '#6e2222' : '#4a3a12';
-  b.style.color = kind==='err' ? '#ff9a9a' : '#e8c97a';
-  b.innerHTML = msg;
+function banner(m,err){const b=$('banner');b.style.display='block';b.innerHTML=m;b.style.borderColor=err?'#6e2222':'#4a3a12';b.style.color=err?'#ff9a9a':'#e8c97a';}
+
+async function login(){
+  const code=$('lcode').value.trim(), pw=$('lpw').value;
+  $('lerr').textContent='';
+  if(!code){$('lerr').textContent='أدخل كود الحساب';return;}
+  const r=await fetch('/api/player/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,password:pw})});
+  const d=await r.json();
+  if(!d.ok){$('lerr').textContent=d.error||'تعذّر الدخول';return;}
+  CODE=d.code; sessionStorage.setItem('code',CODE);
+  enter();
+}
+function logout(){sessionStorage.removeItem('code');CODE=null;location.reload();}
+
+function enter(){
+  $('login').style.display='none';$('app').style.display='block';$('hdr').style.display='flex';
+  $('whoami').textContent='👤 '+(arguments[0]||CODE);
+  init();
 }
 
 async function refreshBalance(){
   try{
-    const r = await fetch('/api/user-balance?user='+encodeURIComponent(USER));
-    const d = await r.json();
-    balance = d.userBalance;
-    const el = $('bal');
-    el.innerHTML = 'الرصيد: <b class="'+(balance>0?'ok':'zero')+'">'+Number(balance||0).toLocaleString('en')+'</b> ';
-    $('pBal').textContent = 'رصيدك: ' + Number(balance||0);
-    if(balance === 0 || balance == null){
-      banner('ℹ️ رصيدك الحالي <b class="zero">0</b>. يمكنك فتح الألعاب وتجربتها، لكن الدوران بأموال يبدأ بعد أن يضيف لك الوكيل رصيداً.');
-    } else { $('banner').style.display='none'; }
-  }catch(e){ $('bal').innerHTML='الرصيد: <b>—</b>'; }
+    const d=await(await fetch('/api/player/balance?code='+encodeURIComponent(CODE))).json();
+    balance=d.balance||0;
+    const el=$('bal');el.textContent=Number(balance).toLocaleString('en');el.className=balance>0?'':'zero';
+    $('pBal').textContent='رصيدك: '+Number(balance).toLocaleString('en');
+    if(balance<=0)banner('ℹ️ رصيدك <b style="color:#ff9a9a">0</b>. الألعاب تظهر هنا، لكن قبل أن تفتح لعبة بأموال يجب أن يضيف الوكيل رصيداً لحسابك.');
+    else $('banner').style.display='none';
+  }catch(e){}
 }
 
 async function loadProviders(){
-  const r = await fetch('/api/providers'); const d = await r.json();
-  if(d.blocked){ $('providers').innerHTML=''; banner('⛔ خادم اللعبة محجوب (IP غير مضاف للقائمة البيضاء). فعّل /app/cloudflare على خادم النشر.','err'); return []; }
-  providers = (d.providers||[]).filter(p=>p.status===1 && p.type==='slot');
-  const box = $('providers'); box.innerHTML = '';
-  const all = document.createElement('div'); all.className='prov active'; all.textContent='الكل'; all.onclick=()=>selProv('ALL',all); box.appendChild(all);
-  providers.forEach(p=>{
-    const el=document.createElement('div'); el.className='prov'; el.textContent=p.name; el.onclick=()=>selProv(p.code,el); box.appendChild(el);
-  });
-  return providers;
+  const d=await(await fetch('/api/providers')).json();
+  if(d.blocked){banner('⛔ خادم اللعبة محجوب (IP). تواصل مع الوكيل.',true);$('providers').innerHTML='';return;}
+  providers=(d.providers||[]).filter(p=>p.status===1&&p.type==='slot');
+  const box=$('providers');box.innerHTML='';
+  const all=document.createElement('div');all.className='prov active';all.textContent='الكل';all.onclick=()=>selProv('ALL',all);box.appendChild(all);
+  providers.forEach(p=>{const el=document.createElement('div');el.className='prov';el.textContent=p.name;el.onclick=()=>selProv(p.code,el);box.appendChild(el);});
 }
-
-function selProv(code, el){
-  curProv=code;
-  document.querySelectorAll('.prov').forEach(x=>x.classList.remove('active'));
-  el.classList.add('active');
-  loadGames();
-}
+function selProv(c,el){curProv=c;document.querySelectorAll('.prov').forEach(x=>x.classList.remove('active'));el.classList.add('active');loadGames();}
 
 async function loadGames(){
-  const grid=$('grid'); grid.innerHTML='<div class="loading" style="grid-column:1/-1">جارٍ التحميل…</div>';
-  let all = [];
+  const grid=$('grid');grid.innerHTML='<div class="loading" style="grid-column:1/-1">…</div>';
+  let all=[];
   if(curProv==='ALL'){
-    // ادمج ألعاب أوائل المزودين (حسب الحجم) — في الإنتاج يمكن صفحات مخصصة
-    const tops = providers.slice(0, 8);
-    for(const p of tops){
-      const d = await (await fetch('/api/games?provider='+p.code)).json();
-      (d.games||[]).forEach(g=>all.push({...g, provider:p.name, providerCode:p.code}));
+    for(const p of providers.slice(0,8)){
+      const d=await(await fetch('/api/games?provider='+p.code)).json();
+      (d.games||[]).forEach(g=>all.push({...g,provider:p.name,providerCode:p.code}));
     }
-  } else {
-    const d = await (await fetch('/api/games?provider='+curProv)).json();
-    if(d.blocked){ banner('⛔ IP غير مضاف للقائمة البيضاء.','err'); grid.innerHTML=''; return; }
-    all = (d.games||[]).map(g=>({...g, provider: providers.find(x=>x.code===curProv)?.name||curProv, providerCode:curProv}));
+  }else{
+    const d=await(await fetch('/api/games?provider='+curProv)).json();
+    if(d.blocked){banner('⛔ خادم اللعبة محجوب.',true);grid.innerHTML='';return;}
+    all=(d.games||[]).map(g=>({...g,provider:providers.find(x=>x.code===curProv)?.name||curProv,providerCode:curProv}));
   }
-  games = all.filter(g=>g.status===1);
-  $('meta').textContent = 'متاح '+games.length.toLocaleString('ar')+' لعبة — اضغط للعب.';
+  games=all.filter(g=>g.status===1);
+  $('meta').textContent='متاح '+games.length.toLocaleString('ar')+' لعبة';
   renderGrid();
 }
-
 function renderGrid(){
   const q=$('q').value.trim().toLowerCase();
-  const list = q ? games.filter(g=>g.game_name.toLowerCase().includes(q)) : games;
+  const list=q?games.filter(g=>g.game_name.toLowerCase().includes(q)):games;
   const grid=$('grid');
-  if(!list.length){ grid.innerHTML='<div class="loading" style="grid-column:1/-1">لا نتائج.</div>'; return; }
+  if(!list.length){grid.innerHTML='<div class="loading" style="grid-column:1/-1">لا نتائج.</div>';return;}
   grid.innerHTML='';
   list.forEach(g=>{
-    const el=document.createElement('div'); el.className='g';
-    el.onclick=()=>launch(g);
-    el.innerHTML = (g.banner?`<img loading="lazy" src="${g.banner}" onerror="this.outerHTML='<div class=ph>🎰</div>'"/>`:`<div class="ph">🎰</div>`)
-      + `<div class="play">▶️</div><div class="in"><div class="t">${g.game_name||g.game_code}</div><div class="p">${g.provider||''}</div></div>`;
+    const el=document.createElement('div');el.className='g';el.onclick=()=>launch(g);
+    el.innerHTML=(g.banner?`<img loading="lazy" src="${g.banner}" onerror="this.outerHTML='<div class=ph>🎰</div>'"/>`:`<div class="ph">🎰</div>`)
+      +`<div class="play">▶️</div><div class="in"><div class="t">${g.game_name||g.game_code}</div><div class="p">${g.provider||''}</div></div>`;
     grid.appendChild(el);
   });
 }
 
 async function launch(g){
-  $('gameName').textContent = g.game_name || g.game_code;
-  $('player').classList.add('show'); $('frame').src='';
-  $('pBal').textContent = 'جارٍ الفتح…';
+  $('gameName').textContent=g.game_name||g.game_code;$('player').classList.add('show');$('frame').src='';$('pBal').textContent='جارٍ الفتح…';
   try{
-    const origin = location.origin;
-    const r = await fetch('/api/launch',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({userCode:USER, providerCode:g.providerCode, gameCode:g.game_code, lang:'ar', lobbyUrl:origin+'/'})});
-    const d = await r.json();
-    if(d.blocked){ alert('خادم اللعبة محجوب — أضف IP الخادم للقائمة البيضاء.'); closeGame(); return; }
-    if(d.launchUrl){ $('frame').src=d.launchUrl; $('pBal').textContent='رصيدك: '+Number(d.userBalance||0); return; }
-    if(d.needCredit || (d.userBalance===0)){
-      closeGame();
-      banner('🎮 لعبة <b>'+(g.game_name||g.game_code)+'</b>: رصيدك <b class="zero">0</b> ولا يمكن فتحها قبل أن يضيف الوكيل رصيداً لحسابك. راجع لوحة الوكيل أو جرّب بعد الشحن.');
+    const d=await(await fetch('/api/player/launch',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code:CODE,providerCode:g.providerCode,gameCode:g.game_code,lang:'ar',lobbyUrl:location.origin+'/'})})).json();
+    if(d.blocked){alert('خادم اللعبة محجوب — تواصل مع الوكيل.');closeGame();return;}
+    if(d.launchUrl){
+      $('frame').src=d.launchUrl;
+      $('pBal').textContent='رصيدك: '+Number(d.balance||0)+(d.balance>0?'':' (للرهان يلزم رصيد)');
+      if(!d.balance) banner('ℹ️ فتحت اللعبة برصيد <b style="color:#ff9a9a">0</b>. جرّب واجهتها، لكن الرهان بأموال يبدأ بعد أن يضيف الوكيل رصيداً لحسابك.');
+      else $('banner').style.display='none';
       return;
     }
-    alert('تعذّر فتح اللعبة: '+(d.msg||'خطأ')); closeGame();
-  }catch(e){ alert('خطأ: '+e.message); closeGame(); }
+    closeGame();banner('🎮 <b>'+(g.game_name||g.game_code)+'</b>: '+(d.msg||'تعذّر الفتح'),true);
+  }catch(e){alert('خطأ: '+e.message);closeGame();}
 }
-function closeGame(){
-  $('player').classList.remove('show'); $('frame').src=''; refreshBalance();
-}
+function closeGame(){$('player').classList.remove('show');$('frame').src='';refreshBalance();}
 
-$('q').addEventListener('input', renderGrid);
+$('q').addEventListener('input',renderGrid);
+$('lpw').addEventListener('keydown',e=>{if(e.key==='Enter')login();});
+$('lcode').addEventListener('keydown',e=>{if(e.key==='Enter')login();});
 
-(async function init(){
-  await refreshBalance();
-  await loadProviders();
-  await loadGames();
-  // حدّث الرصيد دورياً
-  setInterval(refreshBalance, 15000);
-})();
+async function init(){await refreshBalance();await loadProviders();await loadGames();setInterval(refreshBalance,15000);}
+// دخول تلقائي إن كانت الجلسة محفوظة
+if(sessionStorage.getItem('code')){CODE=sessionStorage.getItem('code');enter();}
 </script>
 </body>
 </html>

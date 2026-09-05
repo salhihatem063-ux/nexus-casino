@@ -3,147 +3,140 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>لوحة تحكم الوكيل — إدارة الأرصدة</title>
+<title>لوحة الوكيل — الحسابات والأرصدة</title>
 <style>
-  :root{--bg:#0b0e16;--card:#161b29;--card2:#1f2638;--accent:#e6b143;--ok:#4caf50;--err:#e55353;--txt:#eef1f8;--muted:#97a0b8;--line:#2a3145}
+  :root{--bg:#0a0c12;--card:#141824;--card2:#1c2233;--accent:#e6b143;--ok:#3fd17e;--err:#ff6b6b;--blu:#5b9dff;--txt:#eef1f8;--muted:#8b93ab;--line:#262d40}
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',Tahoma,sans-serif;background:radial-gradient(1000px 500px at 80% -10%,#1a2034,var(--bg));color:var(--txt);min-height:100vh}
-  header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:16px 24px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,14,22,.94);backdrop-filter:blur(10px);z-index:10}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;background:radial-gradient(1100px 500px at 80% -10%,#1a2138,var(--bg));color:var(--txt);min-height:100vh}
+  header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 22px;background:rgba(10,12,18,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
   .logo{font-size:20px;font-weight:800;color:var(--accent)}
-  .logo span{font-size:13px;color:var(--muted);font-weight:400}
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;padding:22px 24px;max-width:1200px;margin:0 auto}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
-  .stat .k{font-size:12px;color:var(--muted);margin-bottom:6px}
-  .stat .v{font-size:22px;font-weight:800;color:var(--accent)}
-  .stat .v.green{color:var(--ok)}
-  .wrap{max-width:1200px;margin:0 auto;padding:0 24px 40px}
+  .agentbal{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:9px 16px;font-weight:800}
+  .agentbal b{color:var(--accent)}
+  a{color:var(--blu);text-decoration:none;font-size:13px}
+  .wrap{max-width:1150px;margin:0 auto;padding:22px}
   .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px}
   h2{font-size:16px;margin-bottom:14px}
   label{display:block;font-size:13px;color:var(--muted);margin:10px 0 6px}
   input{width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--txt);font-family:inherit}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  .btn{padding:12px;border:0;border-radius:11px;background:var(--accent);color:#1a1300;font-weight:800;cursor:pointer;font-size:14px;width:100%;margin-top:14px}
-  .btn.ghost{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
-  .btn.green{background:var(--ok);color:#06140a}
-  .btn.red{background:var(--err);color:#fff}
+  .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+  .btn{padding:11px 18px;border:0;border-radius:10px;cursor:pointer;font-weight:800;font-family:inherit;font-size:14px}
+  .btn.gold{background:var(--accent);color:#1a1300}.btn.green{background:var(--ok);color:#06140a}.btn.red{background:var(--err);color:#fff}.btn.gray{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
   table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:right}
+  th,td{padding:11px 10px;border-bottom:1px solid var(--line);text-align:right;vertical-align:middle}
   th{color:var(--muted);font-weight:600}
-  .toast{position:fixed;bottom:22px;right:22px;min-width:260px;max-width:90vw;padding:14px 18px;border-radius:12px;font-weight:700;z-index:50;transform:translateY(200%);transition:.3s;font-size:14px}
-  .toast.show{transform:translateY(0)}
-  .toast.ok{background:#0d2f16;color:#7ee29a;border:1px solid #1e5e33}
-  .toast.err{background:#3a1414;color:#ff9a9a;border:1px solid #6e2222}
-  .warn{background:#1a1407;border:1px solid #4a3a12;color:#e8c97a;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.8;margin-top:6px}
-  .pill{font-size:11px;font-weight:800;padding:2px 9px;border-radius:6px}
-  .pill.demo{background:#3a2a07;color:#e8c97a}.pill.live{background:#0d2f16;color:#7ee29a}
-  .act{padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card2);color:var(--txt);cursor:pointer;font-size:12px;margin-inline-start:6px}
+  .mini{padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--txt);width:90px;font-size:12px}
+  .act{padding:7px 12px;border-radius:8px;cursor:pointer;border:0;font-weight:700;font-size:12px;margin-inline-start:5px}
+  .act.add{background:#12361f;color:#7ee29a;border:1px solid #1e5e33}
+  .act.sub{background:#3a1a1a;color:#ff9a9a;border:1px solid #6e2222}
+  .act.zero{background:var(--card2);color:var(--muted);border:1px solid var(--line)}
+  .toast{position:fixed;bottom:22px;right:22px;min-width:260px;max-width:90vw;padding:14px 18px;border-radius:12px;font-weight:700;z-index:60;transform:translateY(220%);transition:.3s;font-size:14px}
+  .toast.show{transform:translateY(0)}.toast.ok{background:#0d2f16;color:#7ee29a;border:1px solid #1e5e33}.toast.err{background:#3a1414;color:#ff9a9a;border:1px solid #6e2222}
+  .warn{background:#1a1407;border:1px solid #4a3a12;color:#e8c97a;border-radius:10px;padding:11px 14px;font-size:13px;line-height:1.7;margin-bottom:14px}
+  .code{font-family:monospace;font-weight:800;color:var(--blu)}
+  .bal{font-weight:800;color:var(--ok)}
+  .zero-bal{color:var(--muted)}
 </style>
 </head>
 <body>
 <header>
-  <div class="logo">🎛️ لوحة الوكيل <span id="agentName">—</span></div>
-  <div>
-    <span id="env" class="pill demo">…</span>
-    <a href="/" style="color:var(--muted);font-size:13px;margin-inline-start:14px">واجهة اللاعب ←</a>
+  <div class="logo">🎛️ لوحة الوكيل — الحسابات</div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="agentbal">رصيد الوكيل: <b id="agentBal">—</b></div>
+    <a href="/">واجهة اللاعب ←</a>
   </div>
 </header>
 
-<div class="cards">
-  <div class="stat"><div class="k">رصيد الوكيل (رصيدكم)</div><div class="v" id="agBal">—</div></div>
-  <div class="stat"><div class="k">حصّتكم من الربح</div><div class="v green" id="pct">—</div></div>
-  <div class="stat"><div class="k">وضع التكامل</div><div class="v" id="mode" style="font-size:18px">—</div></div>
-  <div class="stat"><div class="k">عدد اللاعبين لديكم</div><div class="v" id="pcount">—</div></div>
-</div>
-
 <div class="wrap">
-  <div class="panel" id="ipwarn" style="display:none">
-    <div class="warn">⛔ نداءات المنصة محمية بقائمة IP البيضاء. على خادمكم الإنتاجي: شغّل <code>curl ifconfig.me</code> ثم أضف الـ IP في لوحة Nexus: <b>/app/cloudflare (IP Whitelist)</b>. قبل ذلك تعمل اللوحة محلياً فقط.</div>
-  </div>
+  <div class="panel" id="warnbox" style="display:none"><div class="warn" id="warnmsg"></div></div>
 
   <div class="panel">
-    <h2>💰 إرسال رصيد للاعب (من رصيد الوكيل — user_deposit)</h2>
-    <div class="grid2">
-      <div><label>كود اللاعب (user_code)</label><input id="u" placeholder="مثال: player_1"/></div>
-      <div><label>المبلغ</label><input id="amt" type="number" value="100"/></div>
+    <h2>➕ إنشاء حساب لاعب جديد</h2>
+    <div class="row">
+      <div><label>كود الحساب (يسجّل به اللاعب الدخول)</label><input id="ncode" placeholder="مثال: player01"/></div>
+      <div><label>اسم توضيحي</label><input id="nlabel" placeholder="مثال: محمد"/></div>
+      <div><label>كلمة مرور (اختياري)</label><input id="npw" type="text" placeholder="فارغة = بدون كلمة"/></div>
     </div>
-    <button class="btn green" onclick="credit()">➕ إضافة رصيد للاعب</button>
-    <div style="font-size:12px;color:var(--muted);margin-top:8px">اللاعب يبدأ بـ 0 — أول إيداع له يُنشئ محفظته. المبلغ يُخصم من رصيدكم كوكيل.</div>
+    <button class="btn gold" style="margin-top:14px" onclick="createAccount()">إنشاء الحساب</button>
+    <div style="font-size:12px;color:var(--muted);margin-top:8px">كل حساب جديد يُنشأ برصيد <b style="color:var(--err)">0</b> داخل منصة الألعاب. تُضيف الرصيد من الجدول أدناه.</div>
   </div>
 
   <div class="panel">
-    <h2>👥 اللاعبون لديكم</h2>
+    <h2 style="display:flex;justify-content:space-between;align-items:center">👥 حسابات اللاعبين
+      <button class="btn gray" style="font-size:12px" onclick="loadAccounts()">🔄 تحديث</button>
+    </h2>
     <table>
-      <thead><tr><th>كود اللاعب</th><th>رصيد Nexus</th><th>رصيد محلي</th><th>عمليات</th><th>إجراءات</th></tr></thead>
-      <tbody id="rows"><tr><td colspan="5" style="color:var(--muted)">لا يوجد لاعبون بعد — أرسل رصيداً لأول لاعب.</td></tr></tbody>
+      <thead><tr><th>كود الدخول</th><th>الاسم</th><th>الرصيد داخل اللعبة</th><th>إضافة / سحب</th><th></th></tr></thead>
+      <tbody id="rows"><tr><td colspan="5" style="color:var(--muted)">جارٍ التحميل…</td></tr></tbody>
     </table>
-    <button class="btn ghost" onclick="loadPlayers()">🔄 تحديث القائمة</button>
   </div>
 </div>
-
 <div class="toast" id="toast"></div>
 
 <script>
 const $=id=>document.getElementById(id);
-function toast(msg,ok=true){const t=$('toast');t.textContent=msg;t.className='toast show '+(ok?'ok':'err');setTimeout(()=>t.className='toast',4200);}
+function toast(m,ok=true){const t=$('toast');t.textContent=m;t.className='toast show '+(ok?'ok':'err');setTimeout(()=>t.className='toast',4500);}
+const api=async(p,o)=>{const r=await fetch(p,o);return r.json();};
 
-async function loadAgent(){
-  try{
-    const s=await (await fetch('/api/status')).json();
-    $('agentName').textContent=s.agentCode;
-    $('env').textContent=s.isTest?'تجريبي test':'إنتاجي live';
-    $('env').className='pill '+(s.isTest?'demo':'live');
-    $('mode').textContent=s.apiType;
-    const b=await (await fetch('/api/agent-balance')).json();
-    $('agBal').textContent=(b.agentBalance??'—').toLocaleString('en')+' '+(s.currency||'');
-    $('pct').textContent=(b.percent??'—')+'%';
-  }catch(e){toast('تعذر جلب بيانات الوكيل',false);}
+function warnIf(blocked,msg){
+  const w=$('warnbox');
+  if(blocked){w.style.display='block';$('warnmsg').innerHTML='⛔ خادم اللعبة محجوب — أضف IP الخادم في لوحة Nexus → Cloudflare (IP Whitelist). '+(msg||'');}
+  else w.style.display='none';
 }
 
-async function credit(){
-  const userCode=$('u').value.trim();const amount=Number($('amt').value||0);
-  if(!userCode){toast('أدخل كود اللاعب',false);return;}
-  if(amount<=0){toast('أدخل مبلغاً صحيحاً',false);return;}
-  toast('⏳ جارٍ إرسال الرصيد…');
-  try{
-    const r=await fetch('/api/credit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userCode,amount})});
-    const d=await r.json();
-    if(d.blocked){$('ipwarn').style.display='block';toast('محجوب: أضف IP الخادم للقائمة البيضاء',false);}
-    else if(d.ok){toast(`✅ أُضيف ${amount} للاعب ${userCode} — رصيده الآن ${d.nexus.user_balance}`);}
-    else{toast('فشل: '+(d.nexus&&d.nexus.msg||d.error||'خطأ'),false);}
-  }catch(e){toast('خطأ اتصال: '+e.message,false);}
-  loadPlayers();
+async function createAccount(){
+  const code=$('ncode').value.trim(); const label=$('nlabel').value.trim(); const pw=$('npw').value;
+  if(!code){toast('أدخل كود الحساب',false);return;}
+  const d=await api('/api/agent/accounts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,label,password:pw})});
+  if(d.ok){toast(d.created?`✅ أُنشئ الحساب ${code} برصيد 0`:`الحساب ${code} موجود مسبقاً`);$('ncode').value='';$('nlabel').value='';$('npw').value='';loadAccounts();}
+  else toast('فشل: '+(d.error||''),false);
 }
 
-async function doAction(userCode,kind){
-  const body={userCode};
-  if(kind==='withdraw'){const a=prompt('مبلغ السحب من اللاعب إلى رصيد الوكيل:');if(a===null)return;body.amount=Number(a);}
-  if(kind==='reset'&&!confirm('تصفير رصيد اللاعب وإعادة كامل المبلغ لرصيد الوكيل؟'))return;
-  if(kind==='reset')body.reset=true;
-  const r=await fetch('/api/admin/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const d=await r.json();
-  if(d.blocked){$('ipwarn').style.display='block';toast('محجوب: IP غير مضاف للقائمة البيضاء',false);}
-  else if(d.ok)toast('✅ تمت العملية');else toast('فشل: '+(d.nexus&&d.nexus.msg||'خطأ'),false);
-  loadPlayers();
-}
-
-async function loadPlayers(){
-  const d=await (await fetch('/api/admin/players')).json();
-  const ps=d.players||[];$('pcount').textContent=ps.length;
+async function loadAccounts(){
+  const d=await api('/api/agent/accounts');
+  warnIf(false);
+  if(d.agentBalance!=null)$('agentBal').textContent=Number(d.agentBalance).toLocaleString('en');
   const tb=$('rows');
-  if(!ps.length){tb.innerHTML='<tr><td colspan="5" style="color:var(--muted)">لا يوجد لاعبون بعد.</td></tr>';return;}
-  tb.innerHTML=ps.map(p=>`<tr>
-    <td><b>${p.userCode}</b></td>
-    <td>${p.nexusBalance??'—'}</td>
-    <td>${p.localBalance??0}</td>
-    <td>${p.txCount}</td>
-    <td>
-      <button class="act" onclick="quickCredit('${p.userCode}')">➕ إضافة</button>
-      <button class="act" onclick="doAction('${p.userCode}','withdraw')">➖ سحب</button>
-      <button class="act" onclick="doAction('${p.userCode}','reset')">↺ تصفير</button>
-    </td></tr>`).join('');
+  if(!d.accounts||!d.accounts.length){tb.innerHTML='<tr><td colspan="5" style="color:var(--muted)">لا توجد حسابات بعد — أنشئ أول حساب.</td></tr>';return;}
+  tb.innerHTML=d.accounts.map(a=>{
+    const bal=a.nexusBalance;
+    const balHtml = bal==null? '<span style="color:var(--muted)">—</span>'
+      : (bal>0? `<span class="bal">${Number(bal).toLocaleString('en')}</span>` : `<span class="zero-bal">0</span>`);
+    return `<tr>
+      <td><span class="code">${a.code}</span>${a.hasPassword?' 🔒':''}</td>
+      <td>${a.label||''}</td>
+      <td>${balHtml}</td>
+      <td>
+        <input class="mini" type="number" id="amt_${a.code}" placeholder="المبلغ" min="0"/>
+      </td>
+      <td style="white-space:nowrap">
+        <button class="act add" onclick="deposit('${a.code}')">➕ إضافة</button>
+        <button class="act sub" onclick="withdraw('${a.code}',false)">➖ سحب</button>
+        <button class="act zero" onclick="withdraw('${a.code}',true)">↺ سحب الكل</button>
+      </td></tr>`;
+  }).join('');
 }
-function quickCredit(code){$('u').value=code;window.scrollTo({top:0,behavior:'smooth'});$('amt').focus();}
-loadAgent();loadPlayers();
+
+async function deposit(code){
+  const amt=Number($('amt_'+code).value||0);
+  if(amt<=0){toast('أدخل مبلغاً لإضافته',false);return;}
+  toast('⏳ جارٍ إضافة '+amt+'…');
+  const d=await api('/api/agent/deposit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,amount:amt})});
+  if(d.blocked){warnIf(true);toast('محجوب: IP غير مضاف للقائمة البيضاء',false);}
+  else if(d.ok){toast(`✅ أُضيف ${amt} لـ ${code} — رصيده ${d.userBalance}`);$('amt_'+code).value='';loadAccounts();}
+  else toast('فشل: '+(d.msg||'خطأ'),false);
+}
+
+async function withdraw(code,all){
+  let amount=0;
+  if(all){ if(!confirm('سحب كامل رصيد '+code+' وإعادته لرصيد الوكيل؟'))return; }
+  else { amount=Number($('amt_'+code).value||0); if(amount<=0){toast('أدخل مبلغاً للسحب أو استخدم سحب الكل',false);return;} }
+  const d=await api('/api/agent/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,amount,all})});
+  if(d.blocked){warnIf(true);toast('محجوب: IP غير مضاف',false);}
+  else if(d.ok){toast('✅ تم السحب بنجاح');$('amt_'+code).value='';loadAccounts();}
+  else toast('فشل: '+(d.msg||(d.result&&d.result.msg)||'خطأ'),false);
+}
+
+loadAccounts();
 </script>
 </body>
 </html>
