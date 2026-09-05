@@ -18,6 +18,12 @@ const AGENT_SECRET = process.env.AGENT_SECRET || '';
 const CURRENCY = process.env.CURRENCY || 'UAH';              // عملة التسوية
 const DISPLAY_CURRENCY = process.env.DISPLAY_CURRENCY || 'TND'; // عملة العرض
 const PORT = process.env.PORT || 3100;
+// مفتاح بوابة النطاقات الخارجية (Maxbet). يُضبط على Render كمتغير GATEWAY_KEY
+const GATEWAY_KEY = process.env.GATEWAY_KEY || 'mb-gw-2026-maxbet';
+function gwAuth(req, b) {
+  const k = (req.headers['x-gw-key'] || (b && b.gwKey) || '');
+  return k === GATEWAY_KEY;
+}
 
 const game = new GameClient({ gameApiBase: GAME_API, agentCode: AGENT_CODE, token: AGENT_TOKEN, secretKey: AGENT_SECRET, currency: CURRENCY });
 
@@ -177,6 +183,53 @@ const server = http.createServer(async (req, res) => {
           ? (settle > 0 ? 'اللعبة جاهزة.' : 'اللعبة فتُحت — للرهان يلزم رصيد.')
           : 'تعذّر فتح اللعبة: ' + (r.msg || ''),
       });
+    }
+
+    /* ================= بوابة النطاقات الخارجية (Maxbet) =================
+       تُطلق الألعاب والسبورتس بوك من Nexus عبر خادمنا (IP مُضاف للقائمة البيضاء).
+       تحميها بمفتاح مشترك (X-GW-Key). الألعاب برصيد الوكيل الممول. */
+
+    // قائمة المزودين المدعومين (للفلترة في المواقع الخارجية)
+    if (route === 'GET /gw/providers') {
+      const r = await game.providerList();
+      return json(res, 200, { ok: r.status === 1, providers: r.providers || [] });
+    }
+    // قائمة ألعاب مزود
+    if (route === 'GET /gw/games') {
+      const r = await game.gameList({ providerCode: u.searchParams.get('provider') });
+      return json(res, 200, { ok: r.status === 1, games: r.games || [] });
+    }
+    // رصيد لاعب (بالعملتين)
+    if (route === 'GET /gw/balance') {
+      const b = await body(req);
+      if (!gwAuth(req, b)) return json(res, 401, { ok: false, error: 'bad gateway key' });
+      const code = u.searchParams.get('code') || b.code;
+      const r = await game.moneyInfo({ userCode: code });
+      const usr = r.user || {};
+      return json(res, 200, { ok: true, balance: dual(usr.balance !== undefined ? usr.balance : 0), agentBalance: dual(r.agent ? r.agent.balance : null) });
+    }
+    // إطلاق لعبة (سلوت/طاولة) — code لاعب، providerCode، gameCode
+    if (route === 'POST /gw/launch') {
+      const b = await body(req);
+      if (!gwAuth(req, b)) return json(res, 401, { ok: false, error: 'bad gateway key' });
+      const code = (b.code || '').trim();
+      if (!code) return json(res, 400, { ok: false, error: 'code مطلوب' });
+      // إنشاء المستخدم ضمن Nexus إن لم يوجد (Transfer)
+      try { await game._call('user_create', { user_code: code }); } catch {}
+      const r = await game.launchGame({
+        userCode: code, providerCode: b.providerCode, gameCode: b.gameCode,
+        lang: b.lang || 'ar', lobbyUrl: b.returnUrl, rtp: b.rtp });
+      return json(res, 200, { ok: r.status === 1, launchUrl: r.launch_url, msg: r.msg });
+    }
+    // إطلاق السبورتس بوك (لا يتطلب gameCode)
+    if (route === 'POST /gw/sports') {
+      const b = await body(req);
+      if (!gwAuth(req, b)) return json(res, 401, { ok: false, error: 'bad gateway key' });
+      const code = (b.code || '').trim() || 'mb_sports';
+      try { await game._call('user_create', { user_code: code }); } catch {}
+      const r = await game.launchGame({
+        userCode: code, providerCode: 'SPORTSBOOK', lang: b.lang || 'ar', lobbyUrl: b.returnUrl });
+      return json(res, 200, { ok: r.status === 1, launchUrl: r.launch_url, msg: r.msg, token: r.token });
     }
 
     /* ---------- الواجهات ---------- */
