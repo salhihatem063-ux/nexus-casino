@@ -211,7 +211,7 @@ async function launch(g){
       return;
     }
     closeGame();
-    if(g.live) banner('🃏 <b>'+(g.game_name)+'</b>: اللايف كازينو غير مفعّل بعد على هذا الحساب (External/Maintenance). يتطلب تفعيلاً من المزوّد.',true);
+    if(g.live) banner('🃏 <b>'+(g.game_name)+'</b>: طاولات اللايف المباشرة غير مُزوَّدة على الحساب التجريبي بعد. حالة المزوّد "مفتوح" لكن المزوّد يردّ بخطأ خارجي (External Error) — وهي مشكلة تزويد من جهة Nexus وليست من التطبيق. <b>السلوتس تعمل بالكامل</b>، وتُفعَّل طاولات اللايف على الحساب الإنتاجي المموَّل.',true);
     else banner('🎮 <b>'+(g.game_name||g.game_code)+'</b>: '+(d.msg||'تعذّر الفتح'),true);
   }catch(e){alert('خطأ: '+e.message);closeGame();}
 }
