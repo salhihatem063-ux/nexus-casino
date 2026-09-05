@@ -89,8 +89,9 @@
 <div id="player">
   <div class="pbar">
     <span id="gameName" style="font-weight:800"></span>
-    <div style="display:flex;gap:8px;align-items:center">
-      <span id="pBal" style="color:var(--muted);font-size:13px"></span>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span class="bal" style="background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:7px 13px;font-weight:800">رصيدك: <b id="pBalTND" style="color:var(--ok)">—</b></span>
+      <span id="pBal" style="color:var(--muted);font-size:12px"></span>
       <button class="btn" onclick="closeGame()">✕ خروج</button>
     </div>
   </div>
@@ -139,7 +140,8 @@ async function refreshBalance(){
     balObj=d.balance||null;
     const amt=balObj?Number(balObj.display||0):0;
     const el=$('bal');el.textContent=disp();el.className=amt>0?'':'zero';
-    $('pBal').textContent='رصيدك: '+disp();
+    $('pBal').textContent='داخل اللعبة: '+(balObj?Number(balObj.settle||0).toLocaleString('en',{maximumFractionDigits:2})+' '+balObj.settleCur:'');
+    const pt=$('pBalTND');if(pt)pt.textContent=disp();
     if(amt<=0)banner('ℹ️ رصيدك <b style="color:#ff9a9a">0</b>. الألعاب تظهر هنا، لكن قبل أن تفتح لعبة بأموال يجب أن يضيف الوكيل رصيداً لحسابك.');
     else $('banner').style.display='none';
   }catch(e){}
@@ -205,7 +207,9 @@ async function launch(g){
     if(d.launchUrl){
       $('frame').src=d.launchUrl;
       const b=d.balance||{}; const bAmt=Number(b.display||0);
-      $('pBal').textContent='رصيدك: '+(bAmt?disp():'0 '+(b.displayCur||''))+(bAmt>0?'':' (للرهان يلزم رصيد)');
+      balObj=b;
+      const pt=$('pBalTND');if(pt)pt.textContent=disp();
+      $('pBal').textContent='داخل اللعبة: '+Number(b.settle||0).toLocaleString('en',{maximumFractionDigits:2})+' '+b.settleCur+' · (الرصيد نفسه بالدينار أعلاه)';
       if(bAmt<=0 && !g.live) banner('ℹ️ فتحت اللعبة برصيد <b style="color:#ff9a9a">0</b>. الرهان بأموال يبدأ بعد أن يضيف الوكيل رصيداً لحسابك.');
       else $('banner').style.display='none';
       return;

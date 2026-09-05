@@ -73,3 +73,17 @@ curl https://nexus-casino-80ax.onrender.com/api/health
 - المزوّدون (EVOLUTION/PRAGMATICLIVE/EZUGI) يظهرون status=1 (="مفتوح" وليس صيانة) لكن إطلاق أي طاولة
   يردّ "External Error". حسب التوثيق: status=1 لا يعني أن الطاولات مزوَّدة على الحساب؛ والخطأ الخارجي
   مسألة تزويد/تمويل من جهة Nexus. السلوتس تعمل بالكامل. تُفعَّل طاولات اللايف على الحساب الإنتاجي.
+
+## 💰 رمز العملة داخل إطار اللعبة (curShow)
+- يقرأ إطار المزوّد عملة **تسوية الوكيل** (UAH) ويعرض رمزها ₴؛ لا يوجد معامل في game_launch لتغييرها.
+- الحل الموثّق من Nexus: **إخفاء الرمز** عبر ضبط `curShow=0` على الوكيل (0=إخفاء، 1=إظهار).
+  `PUT /api/agent/{id}` بـ `curShow=0` (مع agentType/apiType/percent/hasLive) → status:1.
+- طُبّق على tnd_demo_1 (id=4174): curShow=0 — لن يظهر رمز ₴ داخل اللعبة.
+- شريط رصيد بالدينار (TND) يُعرض فوق إطار اللعبة ليكون الرصيد بالدينار مرئياً دائماً.
+- تغيير عملة التسوية نفسها إلى TND صلاحيته للأدمن فقط (non-admin يُفرض عليه UAH؛ curShow=رقم).
+
+## 🃏 اللايف — اختبار شامل إضافي
+- جُرّب الإطلاق عبر وكلاء Transfer (apiType=1) وSeamless (apiType=0) → كلاهما External Error.
+- جُرّب تمرير currency/cur_code/currency_code في game_launch → "Invalid Parameter" (لا يدعم).
+- 61 لعبة Pragmatic Live تظهر في القائمة لكن أي إطلاق (لوبي أو كود حقيقي) → External Error.
+- الخلاصة: طاولات اللايف غير مُزوَّدة على الحساب التجريبي؛ status=1 تعني "مفتوح" وليس "مُزوَّد".
