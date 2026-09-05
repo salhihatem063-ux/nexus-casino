@@ -57,7 +57,8 @@
       <div><label>كلمة مرور (اختياري)</label><input id="npw" type="text" placeholder="فارغة = بدون كلمة"/></div>
     </div>
     <button class="btn gold" style="margin-top:14px" onclick="createAccount()">إنشاء الحساب</button>
-    <div style="font-size:12px;color:var(--muted);margin-top:8px">كل حساب جديد يُنشأ برصيد <b style="color:var(--err)">0</b> داخل منصة الألعاب. تُضيف الرصيد من الجدول أدناه.</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:10px" id="curNote">جارٍ تحميل أسعار الصرف…</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:6px">كل حساب جديد يُنشأ برصيد <b style="color:var(--err)">0</b> داخل منصة الألعاب. تُضيف الرصيد من الجدول أدناه.</div>
   </div>
 
   <div class="panel">
@@ -74,6 +75,11 @@
 
 <script>
 const $=id=>document.getElementById(id);
+let DISP='TND', SETTLE='UAH', RATE=1;
+function money(b){ if(!b) return '—'; return Number(b.display||0).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+b.displayCur; }
+function moneySettle(b){ if(!b||b.settle==null) return ''; return ' <span style="color:var(--muted);font-size:11px">('+Number(b.settle).toLocaleString('en',{maximumFractionDigits:2})+' '+b.settleCur+')</span>'; }
+async function loadStatus(){ try{const d=await api('/api/status');DISP=d.displayCur||'TND';SETTLE=d.settleCur||'UAH';RATE=d.rate||1;
+  $('curNote').innerHTML='المبالغ بالدينار <b>'+DISP+'</b>. تُحوَّل تلقائياً لعملة التسوية '+SETTLE+' (1 '+SETTLE+' = '+Number(RATE).toFixed(4)+' '+DISP+').';}catch(e){} }
 function toast(m,ok=true){const t=$('toast');t.textContent=m;t.className='toast show '+(ok?'ok':'err');setTimeout(()=>t.className='toast',4500);}
 const api=async(p,o)=>{const r=await fetch(p,o);return r.json();};
 
@@ -94,19 +100,19 @@ async function createAccount(){
 async function loadAccounts(){
   const d=await api('/api/agent/accounts');
   warnIf(false);
-  if(d.agentBalance!=null)$('agentBal').textContent=Number(d.agentBalance).toLocaleString('en');
+  if(d.agentBalance)$('agentBal').innerHTML=money(d.agentBalance)+moneySettle(d.agentBalance);
   const tb=$('rows');
   if(!d.accounts||!d.accounts.length){tb.innerHTML='<tr><td colspan="5" style="color:var(--muted)">لا توجد حسابات بعد — أنشئ أول حساب.</td></tr>';return;}
   tb.innerHTML=d.accounts.map(a=>{
-    const bal=a.nexusBalance;
-    const balHtml = bal==null? '<span style="color:var(--muted)">—</span>'
-      : (bal>0? `<span class="bal">${Number(bal).toLocaleString('en')}</span>` : `<span class="zero-bal">0</span>`);
+    const b=a.balance;
+    const balHtml = !b? '<span style="color:var(--muted)">—</span>'
+      : (Number(b.display||0)>0? `<span class="bal">${money(b)}</span>${moneySettle(b)}` : `<span class="zero-bal">0 ${b.displayCur||''}</span>`);
     return `<tr>
       <td><span class="code">${a.code}</span>${a.hasPassword?' 🔒':''}</td>
       <td>${a.label||''}</td>
       <td>${balHtml}</td>
       <td>
-        <input class="mini" type="number" id="amt_${a.code}" placeholder="المبلغ" min="0"/>
+        <input class="mini" type="number" id="amt_${a.code}" placeholder="المبلغ (${DISP})" min="0" step="0.01"/>
       </td>
       <td style="white-space:nowrap">
         <button class="act add" onclick="deposit('${a.code}')">➕ إضافة</button>
@@ -119,10 +125,10 @@ async function loadAccounts(){
 async function deposit(code){
   const amt=Number($('amt_'+code).value||0);
   if(amt<=0){toast('أدخل مبلغاً لإضافته',false);return;}
-  toast('⏳ جارٍ إضافة '+amt+'…');
-  const d=await api('/api/agent/deposit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,amount:amt})});
+  toast('⏳ جارٍ إضافة '+amt+' '+DISP+'…');
+  const d=await api('/api/agent/deposit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,amount:amt,currency:DISP})});
   if(d.blocked){warnIf(true);toast('محجوب: IP غير مضاف للقائمة البيضاء',false);}
-  else if(d.ok){toast(`✅ أُضيف ${amt} لـ ${code} — رصيده ${d.userBalance}`);$('amt_'+code).value='';loadAccounts();}
+  else if(d.ok){toast(`✅ أُضيف ${amt} ${DISP} لـ ${code} — رصيده الآن ${money(d.userBalance)}`);$('amt_'+code).value='';loadAccounts();}
   else toast('فشل: '+(d.msg||'خطأ'),false);
 }
 
@@ -130,13 +136,13 @@ async function withdraw(code,all){
   let amount=0;
   if(all){ if(!confirm('سحب كامل رصيد '+code+' وإعادته لرصيد الوكيل؟'))return; }
   else { amount=Number($('amt_'+code).value||0); if(amount<=0){toast('أدخل مبلغاً للسحب أو استخدم سحب الكل',false);return;} }
-  const d=await api('/api/agent/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,amount,all})});
+  const d=await api('/api/agent/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,amount,currency:DISP,all})});
   if(d.blocked){warnIf(true);toast('محجوب: IP غير مضاف',false);}
   else if(d.ok){toast('✅ تم السحب بنجاح');$('amt_'+code).value='';loadAccounts();}
   else toast('فشل: '+(d.msg||(d.result&&d.result.msg)||'خطأ'),false);
 }
 
-loadAccounts();
+loadStatus().then(loadAccounts); setInterval(loadAccounts,20000);
 </script>
 </body>
 </html>
