@@ -102,10 +102,15 @@
 const $=id=>document.getElementById(id);
 let CODE=null, allProviders=[], providers=[], games=[], curProv='ALL', curCat='slot', balObj=null;
 function disp(){return balObj ? Number(balObj.display||0).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+balObj.displayCur : '—';}
+
+// 🎴 طاولات الكازينو التي تعمل فعلاً الآن برصيدكم (RNG/على الطاولة) — تُطلق عبر مزودي السلوتس العاملين
+const TABLE_GAMES=[
+  {game_code:'vs1024dtiger', game_name:'🐉 Dragon Tiger', providerCode:'PRAGMATIC', provider:'Pragmatic Play', table:true},
+];
 const LIVE_TYPES=['live'];
 function isLive(p){return LIVE_TYPES.includes(p.type);}
 function catProviders(cat){
-  if(cat==='live') return allProviders.filter(p=>p.status===1 && isLive(p));
+  if(cat==='live') return allProviders.filter(p=>p.status===1 && (isLive(p)||p.code==='PRAGMATIC'));
   if(cat==='all') return allProviders.filter(p=>p.status===1);
   return allProviders.filter(p=>p.status===1 && !isLive(p) && p.type==='slot');
 }
@@ -163,11 +168,16 @@ async function loadGames(){
   let all=[];
   const liveSelected = isLive(providers.find(p=>p.code===curProv)||{});
   if(curCat==='live' || liveSelected){
-    // اللايف: كل مزود = بطاقة لوبي (game_code فارغ يفتح اللوبي المباشر)
-    const list = curProv==='ALL' ? providers : providers.filter(p=>p.code===curProv);
-    all=list.map(p=>({game_code:'',game_name:p.name+' — لايف',provider:p.name,providerCode:p.code,live:true}));
-    $('meta').textContent='لايف كازينو: '+list.length+' مزوّد مباشر. اضغط لفتح الطاولة المباشرة.'+(curProv==='ALL'?'':'');
-    games=all; renderGrid(); return;
+    // قسم 1: طاولات تعمل الآن برصيدكم (Dragon Tiger وغيرها)
+    const working = curProv==='ALL' ? TABLE_GAMES : TABLE_GAMES.filter(g=>g.providerCode===curProv);
+    // قسم 2: طاولات الموزّع المباشر (تُفعّل على الحساب الإنتاجي)
+    const liveProvs = allProviders.filter(p=>p.status===1 && isLive(p) && (curProv==='ALL'||p.code===curProv));
+    const lobby = liveProvs.map(p=>({game_code:'',game_name:p.name+' — موزّع مباشر 📡',provider:p.name,providerCode:p.code,live:true,comingSoon:true}));
+    all=[...working.map(g=>({...g})), ...lobby];
+    $('meta').textContent='طاولات الكازينو: '+working.length+' تعمل الآن برصيدك · '+liveProvs.length+' موزّع مباشر (تُفعّل على الحساب الإنتاجي)';
+    games=all; renderGrid();
+    if(liveProvs.length) banner('🃏 <b>طاولة Dragon Tiger تعمل الآن</b> برصيدك (اضغط عليها). طاولات الموزّع المباشر 📡 (روليت/بلاك جاك بكاميرا حقيقية) غير مزوَّدة على الحساب التجريبي وتُفعَّل على الحساب الإنتاجي.');
+    return;
   }
   const slotList=providers.filter(p=>!isLive(p));
   if(curProv==='ALL'){
@@ -191,9 +201,12 @@ function renderGrid(){
   grid.innerHTML='';
   list.forEach(g=>{
     const el=document.createElement('div');el.className='g';el.onclick=()=>launch(g);
-    const ph=g.live?'🃏':'🎰';
+    let ph='🎰';
+    if(g.comingSoon) ph='📡'; else if(g.table) ph='🐉'; else if(g.live) ph='🃏';
+    const badge = g.comingSoon ? '<div style="position:absolute;top:8px;right:8px;background:#2a2110;border:1px solid #4a3a12;color:#e8c97a;font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px">قريباً 📡</div>' : (g.table?'<div style="position:absolute;top:8px;right:8px;background:#12361f;border:1px solid #1e5e33;color:#7ee29a;font-size:10px;font-weight:800;padding:3px 8px;border-radius:999px">تعمل الآن</div>':'');
     el.innerHTML=(g.banner?`<img loading="lazy" src="${g.banner}" onerror="this.outerHTML='<div class=ph>${ph}</div>'"/>`:`<div class="ph">${ph}</div>`)
-      +`<div class="play">${g.live?'🟢':'▶️'}</div><div class="in"><div class="t">${g.game_name||g.game_code||g.provider}</div><div class="p">${g.provider||''}${g.live?' · مباشر':''}</div></div>`;
+      +badge
+      +`<div class="play">${g.comingSoon?'📡':(g.table?'🐉':'▶️')}</div><div class="in"><div class="t">${g.game_name||g.game_code||g.provider}</div><div class="p">${g.provider||''}${g.comingSoon?' · موزّع مباشر (إنتاجي)':(g.table?' · طاولة برصيدك':(g.live?' · مباشر':''))}</div></div>`;
     grid.appendChild(el);
   });
 }
@@ -215,7 +228,7 @@ async function launch(g){
       return;
     }
     closeGame();
-    if(g.live) banner('🃏 <b>'+(g.game_name)+'</b>: طاولات اللايف المباشرة غير مُزوَّدة على الحساب التجريبي بعد. حالة المزوّد "مفتوح" لكن المزوّد يردّ بخطأ خارجي (External Error) — وهي مشكلة تزويد من جهة Nexus وليست من التطبيق. <b>السلوتس تعمل بالكامل</b>، وتُفعَّل طاولات اللايف على الحساب الإنتاجي المموَّل.',true);
+    if(g.comingSoon||g.live) banner('📡 <b>'+(g.game_name)+'</b>: طاولات الموزّع المباشر بكاميرا حقيقية (روليت/بلاك جاك) تتطلّب تفعيلاً على <b>الحساب الإنتاجي</b> من Nexus (الخادم التجريبي لا يمرّرها — تحقّقنا أن الطلب لا يصل للمزوّد أصلاً). حالياً العب <b>Dragon Tiger</b> 🐉 وهي طاولة كازينو تعمل برصيدك الآن.',true);
     else banner('🎮 <b>'+(g.game_name||g.game_code)+'</b>: '+(d.msg||'تعذّر الفتح'),true);
   }catch(e){alert('خطأ: '+e.message);closeGame();}
 }
