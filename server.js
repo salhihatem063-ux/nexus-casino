@@ -97,14 +97,22 @@ const server = http.createServer(async (req, res) => {
     // ============ إطلاق لعبة ============
     if (route === 'POST /api/launch') {
       const b = await body(req);
+      // تحقق من رصيد اللاعب أولاً (لأن المزوّد يرفض الإطلاق برصيد 0)
+      const info = await game.moneyInfo({ userCode: b.userCode });
+      const u = info.user || {};
+      const bal = u.balance !== undefined ? Number(u.balance) : 0;
       const r = await game.launchGame({
         userCode: b.userCode, providerCode: b.providerCode, gameCode: b.gameCode,
         lang: b.lang || 'ar', lobbyUrl: b.lobbyUrl, live: b.live, rtp: b.rtp,
       });
+      const needCredit = r.status !== 1 && !isBlocked(r);
       return json(res, isBlocked(r) ? 403 : 200, {
         ok: r.status === 1, blocked: isBlocked(r), launchUrl: r.launch_url, token: r.token,
-        msg: r.msg,
-        note: r.status === 1 ? 'في TRANSFER يلزم رصيد مودَع للدوران؛ برصيد 0 تُفتح اللعبة ولا تُراهِن.' : undefined,
+        msg: r.msg, userBalance: bal,
+        needCredit,
+        note: r.status === 1
+          ? 'اللعبة جاهزة. (في TRANSFER الدوران بالرصيد المودَع.)'
+          : 'لا يمكن فتح اللعبة برصيد 0 — يجب أن يضيف الوكيل رصيداً للاعب أولاً.',
         hint: isBlocked(r) ? 'IP غير مضاف للقائمة البيضاء.' : undefined,
       });
     }

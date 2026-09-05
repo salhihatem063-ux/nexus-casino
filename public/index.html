@@ -156,14 +156,20 @@ function renderGrid(){
 async function launch(g){
   $('gameName').textContent = g.game_name || g.game_code;
   $('player').classList.add('show'); $('frame').src='';
+  $('pBal').textContent = 'جارٍ الفتح…';
   try{
     const origin = location.origin;
     const r = await fetch('/api/launch',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({userCode:USER, providerCode:g.providerCode, gameCode:g.game_code, lang:'ar', lobbyUrl:origin+'/'})});
     const d = await r.json();
-    if(d.blocked){ alert('خادم اللعبة محجوب — أضف IP الخادم للقائمة البيضاء في /app/cloudflare'); closeGame(); return; }
-    if(d.launchUrl){ $('frame').src=d.launchUrl; }
-    else { alert('تعذّر فتح اللعبة: '+(d.msg||'خطأ')); closeGame(); }
+    if(d.blocked){ alert('خادم اللعبة محجوب — أضف IP الخادم للقائمة البيضاء.'); closeGame(); return; }
+    if(d.launchUrl){ $('frame').src=d.launchUrl; $('pBal').textContent='رصيدك: '+Number(d.userBalance||0); return; }
+    if(d.needCredit || (d.userBalance===0)){
+      closeGame();
+      banner('🎮 لعبة <b>'+(g.game_name||g.game_code)+'</b>: رصيدك <b class="zero">0</b> ولا يمكن فتحها قبل أن يضيف الوكيل رصيداً لحسابك. راجع لوحة الوكيل أو جرّب بعد الشحن.');
+      return;
+    }
+    alert('تعذّر فتح اللعبة: '+(d.msg||'خطأ')); closeGame();
   }catch(e){ alert('خطأ: '+e.message); closeGame(); }
 }
 function closeGame(){
