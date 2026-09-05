@@ -1,0 +1,25 @@
+# Render Blueprint — خدمة ويب Node بلا تبعيات خارجية (بدون npm install ثقيل)
+# النشر: Render Web Service → بيئة Node → Build: npm install → Start: npm start
+services:
+  - type: web
+    name: nexus-casino
+    runtime: node
+    plan: free
+    autoDeploy: true
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: AGENT_CODE
+        sync: false
+      - key: AGENT_TOKEN
+        sync: false
+      - key: AGENT_SECRET
+        sync: false
+      - key: GAME_API
+        value: https://api.nexusggr.dev
+      - key: OFFICE_API
+        value: https://my.nexusggr.dev
+      - key: CURRENCY
+        value: UAH

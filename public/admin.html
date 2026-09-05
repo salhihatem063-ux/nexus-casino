@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>لوحة تحكم الوكيل — إدارة الأرصدة</title>
+<style>
+  :root{--bg:#0b0e16;--card:#161b29;--card2:#1f2638;--accent:#e6b143;--ok:#4caf50;--err:#e55353;--txt:#eef1f8;--muted:#97a0b8;--line:#2a3145}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Tahoma,sans-serif;background:radial-gradient(1000px 500px at 80% -10%,#1a2034,var(--bg));color:var(--txt);min-height:100vh}
+  header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:16px 24px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,14,22,.94);backdrop-filter:blur(10px);z-index:10}
+  .logo{font-size:20px;font-weight:800;color:var(--accent)}
+  .logo span{font-size:13px;color:var(--muted);font-weight:400}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;padding:22px 24px;max-width:1200px;margin:0 auto}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .stat .k{font-size:12px;color:var(--muted);margin-bottom:6px}
+  .stat .v{font-size:22px;font-weight:800;color:var(--accent)}
+  .stat .v.green{color:var(--ok)}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 24px 40px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px}
+  h2{font-size:16px;margin-bottom:14px}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 6px}
+  input{width:100%;padding:11px 13px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--txt);font-family:inherit}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .btn{padding:12px;border:0;border-radius:11px;background:var(--accent);color:#1a1300;font-weight:800;cursor:pointer;font-size:14px;width:100%;margin-top:14px}
+  .btn.ghost{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
+  .btn.green{background:var(--ok);color:#06140a}
+  .btn.red{background:var(--err);color:#fff}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:right}
+  th{color:var(--muted);font-weight:600}
+  .toast{position:fixed;bottom:22px;right:22px;min-width:260px;max-width:90vw;padding:14px 18px;border-radius:12px;font-weight:700;z-index:50;transform:translateY(200%);transition:.3s;font-size:14px}
+  .toast.show{transform:translateY(0)}
+  .toast.ok{background:#0d2f16;color:#7ee29a;border:1px solid #1e5e33}
+  .toast.err{background:#3a1414;color:#ff9a9a;border:1px solid #6e2222}
+  .warn{background:#1a1407;border:1px solid #4a3a12;color:#e8c97a;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.8;margin-top:6px}
+  .pill{font-size:11px;font-weight:800;padding:2px 9px;border-radius:6px}
+  .pill.demo{background:#3a2a07;color:#e8c97a}.pill.live{background:#0d2f16;color:#7ee29a}
+  .act{padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card2);color:var(--txt);cursor:pointer;font-size:12px;margin-inline-start:6px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🎛️ لوحة الوكيل <span id="agentName">—</span></div>
+  <div>
+    <span id="env" class="pill demo">…</span>
+    <a href="/" style="color:var(--muted);font-size:13px;margin-inline-start:14px">واجهة اللاعب ←</a>
+  </div>
+</header>
+
+<div class="cards">
+  <div class="stat"><div class="k">رصيد الوكيل (رصيدكم)</div><div class="v" id="agBal">—</div></div>
+  <div class="stat"><div class="k">حصّتكم من الربح</div><div class="v green" id="pct">—</div></div>
+  <div class="stat"><div class="k">وضع التكامل</div><div class="v" id="mode" style="font-size:18px">—</div></div>
+  <div class="stat"><div class="k">عدد اللاعبين لديكم</div><div class="v" id="pcount">—</div></div>
+</div>
+
+<div class="wrap">
+  <div class="panel" id="ipwarn" style="display:none">
+    <div class="warn">⛔ نداءات المنصة محمية بقائمة IP البيضاء. على خادمكم الإنتاجي: شغّل <code>curl ifconfig.me</code> ثم أضف الـ IP في لوحة Nexus: <b>/app/cloudflare (IP Whitelist)</b>. قبل ذلك تعمل اللوحة محلياً فقط.</div>
+  </div>
+
+  <div class="panel">
+    <h2>💰 إرسال رصيد للاعب (من رصيد الوكيل — user_deposit)</h2>
+    <div class="grid2">
+      <div><label>كود اللاعب (user_code)</label><input id="u" placeholder="مثال: player_1"/></div>
+      <div><label>المبلغ</label><input id="amt" type="number" value="100"/></div>
+    </div>
+    <button class="btn green" onclick="credit()">➕ إضافة رصيد للاعب</button>
+    <div style="font-size:12px;color:var(--muted);margin-top:8px">اللاعب يبدأ بـ 0 — أول إيداع له يُنشئ محفظته. المبلغ يُخصم من رصيدكم كوكيل.</div>
+  </div>
+
+  <div class="panel">
+    <h2>👥 اللاعبون لديكم</h2>
+    <table>
+      <thead><tr><th>كود اللاعب</th><th>رصيد Nexus</th><th>رصيد محلي</th><th>عمليات</th><th>إجراءات</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="5" style="color:var(--muted)">لا يوجد لاعبون بعد — أرسل رصيداً لأول لاعب.</td></tr></tbody>
+    </table>
+    <button class="btn ghost" onclick="loadPlayers()">🔄 تحديث القائمة</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+function toast(msg,ok=true){const t=$('toast');t.textContent=msg;t.className='toast show '+(ok?'ok':'err');setTimeout(()=>t.className='toast',4200);}
+
+async function loadAgent(){
+  try{
+    const s=await (await fetch('/api/status')).json();
+    $('agentName').textContent=s.agentCode;
+    $('env').textContent=s.isTest?'تجريبي test':'إنتاجي live';
+    $('env').className='pill '+(s.isTest?'demo':'live');
+    $('mode').textContent=s.apiType;
+    const b=await (await fetch('/api/agent-balance')).json();
+    $('agBal').textContent=(b.agentBalance??'—').toLocaleString('en')+' '+(s.currency||'');
+    $('pct').textContent=(b.percent??'—')+'%';
+  }catch(e){toast('تعذر جلب بيانات الوكيل',false);}
+}
+
+async function credit(){
+  const userCode=$('u').value.trim();const amount=Number($('amt').value||0);
+  if(!userCode){toast('أدخل كود اللاعب',false);return;}
+  if(amount<=0){toast('أدخل مبلغاً صحيحاً',false);return;}
+  toast('⏳ جارٍ إرسال الرصيد…');
+  try{
+    const r=await fetch('/api/credit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userCode,amount})});
+    const d=await r.json();
+    if(d.blocked){$('ipwarn').style.display='block';toast('محجوب: أضف IP الخادم للقائمة البيضاء',false);}
+    else if(d.ok){toast(`✅ أُضيف ${amount} للاعب ${userCode} — رصيده الآن ${d.nexus.user_balance}`);}
+    else{toast('فشل: '+(d.nexus&&d.nexus.msg||d.error||'خطأ'),false);}
+  }catch(e){toast('خطأ اتصال: '+e.message,false);}
+  loadPlayers();
+}
+
+async function doAction(userCode,kind){
+  const body={userCode};
+  if(kind==='withdraw'){const a=prompt('مبلغ السحب من اللاعب إلى رصيد الوكيل:');if(a===null)return;body.amount=Number(a);}
+  if(kind==='reset'&&!confirm('تصفير رصيد اللاعب وإعادة كامل المبلغ لرصيد الوكيل؟'))return;
+  if(kind==='reset')body.reset=true;
+  const r=await fetch('/api/admin/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json();
+  if(d.blocked){$('ipwarn').style.display='block';toast('محجوب: IP غير مضاف للقائمة البيضاء',false);}
+  else if(d.ok)toast('✅ تمت العملية');else toast('فشل: '+(d.nexus&&d.nexus.msg||'خطأ'),false);
+  loadPlayers();
+}
+
+async function loadPlayers(){
+  const d=await (await fetch('/api/admin/players')).json();
+  const ps=d.players||[];$('pcount').textContent=ps.length;
+  const tb=$('rows');
+  if(!ps.length){tb.innerHTML='<tr><td colspan="5" style="color:var(--muted)">لا يوجد لاعبون بعد.</td></tr>';return;}
+  tb.innerHTML=ps.map(p=>`<tr>
+    <td><b>${p.userCode}</b></td>
+    <td>${p.nexusBalance??'—'}</td>
+    <td>${p.localBalance??0}</td>
+    <td>${p.txCount}</td>
+    <td>
+      <button class="act" onclick="quickCredit('${p.userCode}')">➕ إضافة</button>
+      <button class="act" onclick="doAction('${p.userCode}','withdraw')">➖ سحب</button>
+      <button class="act" onclick="doAction('${p.userCode}','reset')">↺ تصفير</button>
+    </td></tr>`).join('');
+}
+function quickCredit(code){$('u').value=code;window.scrollTo({top:0,behavior:'smooth'});$('amt').focus();}
+loadAgent();loadPlayers();
+</script>
+</body>
+</html>

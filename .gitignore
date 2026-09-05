@@ -1,0 +1,6 @@
+node_modules/
+config.json
+ledger-store.json
+wallet-store.json
+server.log
+*.log

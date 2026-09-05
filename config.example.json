@@ -1,0 +1,21 @@
+{
+  "_comment": "انسخ هذا الملف إلى config.json وضع بياناتك. (Back-office: الملف الشخصي → token / secretKey)",
+  "agent": {
+    "agentCode": "YOUR_AGENT_CODE",
+    "token": "YOUR_AGENT_TOKEN",
+    "secretKey": "YOUR_AGENT_SECRET_KEY",
+    "apiType": "TRANSFER",
+    "_apiType_help": "TRANSFER = التمويل من رصيد الوكيل (رصيدكم). SEAMLESS = يستدعي خادمكم لكل رهان.",
+    "currency": "UAH",
+    "isTest": true,
+    "password": "test_demoxx"
+  },
+  "endpoints": {
+    "_note": "Game API = https://api.<domain> (يُبنى من host اللوحة). يتطلب إضافة IP خادمك في /app/cloudflare (IP Whitelist).",
+    "officeApi": "https://my.nexusggr.dev",
+    "gameApi": "https://api.nexusggr.dev"
+  },
+  "server": {
+    "port": 3100
+  }
+}

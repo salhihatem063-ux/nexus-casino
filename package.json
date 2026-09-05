@@ -1,0 +1,11 @@
+{
+  "name": "nexus-casino",
+  "version": "1.0.0",
+  "description": "Nexus GGR integration: player lobby (games, zero balance) + agent admin panel (credit users)",
+  "main": "server.js",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "MIT"
+}
