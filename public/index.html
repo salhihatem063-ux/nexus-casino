@@ -20,6 +20,9 @@
   .providers{display:flex;gap:9px;overflow-x:auto;padding:6px 2px 16px}
   .prov{flex:0 0 auto;padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer;font-weight:700;font-size:13px;white-space:nowrap}
   .prov.active{background:var(--accent);color:#1a1300;border-color:var(--accent)}
+  .tabs{display:flex;gap:8px;margin-bottom:14px}
+  .tab{padding:10px 18px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer;font-weight:800;font-family:inherit;font-size:14px}
+  .tab.active{background:var(--accent);color:#1a1300;border-color:var(--accent)}
   .meta{color:var(--muted);font-size:13px;margin:4px 2px 16px}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px}
   .g{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:.15s;position:relative}
@@ -71,12 +74,17 @@
   </div>
 </div>
 
-<div class="wrap" id="app" style="display:none">
-  <div class="banner" id="banner" style="display:none"></div>
-  <div class="providers" id="providers"></div>
-  <div class="meta" id="meta">—</div>
-  <div class="grid" id="grid"></div>
-</div>
+  <div class="wrap" id="app" style="display:none">
+    <div class="banner" id="banner" style="display:none"></div>
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-cat="slot" onclick="setCat('slot',this)">🎰 سلوتس</button>
+      <button class="tab" data-cat="live" onclick="setCat('live',this)">🃏 لايف كازينو</button>
+      <button class="tab" data-cat="all" onclick="setCat('all',this)">الكل</button>
+    </div>
+    <div class="providers" id="providers"></div>
+    <div class="meta" id="meta">—</div>
+    <div class="grid" id="grid"></div>
+  </div>
 
 <div id="player">
   <div class="pbar">
@@ -91,7 +99,18 @@
 
 <script>
 const $=id=>document.getElementById(id);
-let CODE=null, providers=[], games=[], curProv='ALL', balance=0;
+let CODE=null, allProviders=[], providers=[], games=[], curProv='ALL', curCat='slot', balance=0;
+const LIVE_TYPES=['live'];
+function isLive(p){return LIVE_TYPES.includes(p.type);}
+function catProviders(cat){
+  if(cat==='live') return allProviders.filter(p=>p.status===1 && isLive(p));
+  if(cat==='all') return allProviders.filter(p=>p.status===1);
+  return allProviders.filter(p=>p.status===1 && !isLive(p) && p.type==='slot');
+}
+async function setCat(cat,el){
+  curCat=cat; document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); el.classList.add('active');
+  curProv='ALL'; await loadProviders(); await loadGames();
+}
 
 function banner(m,err){const b=$('banner');b.style.display='block';b.innerHTML=m;b.style.borderColor=err?'#6e2222':'#4a3a12';b.style.color=err?'#ff9a9a':'#e8c97a';}
 
@@ -127,40 +146,50 @@ async function refreshBalance(){
 async function loadProviders(){
   const d=await(await fetch('/api/providers')).json();
   if(d.blocked){banner('⛔ خادم اللعبة محجوب (IP). تواصل مع الوكيل.',true);$('providers').innerHTML='';return;}
-  providers=(d.providers||[]).filter(p=>p.status===1&&p.type==='slot');
+  allProviders=d.providers||[];
+  providers=catProviders(curCat);
   const box=$('providers');box.innerHTML='';
-  const all=document.createElement('div');all.className='prov active';all.textContent='الكل';all.onclick=()=>selProv('ALL',all);box.appendChild(all);
-  providers.forEach(p=>{const el=document.createElement('div');el.className='prov';el.textContent=p.name;el.onclick=()=>selProv(p.code,el);box.appendChild(el);});
+  const all=document.createElement('div');all.className='prov active';all.textContent='الكل ('+providers.length+')';all.onclick=()=>selProv('ALL',all);box.appendChild(all);
+  providers.forEach(p=>{const el=document.createElement('div');el.className='prov';el.textContent=p.name+(isLive(p)?' 🃏':'');el.onclick=()=>selProv(p.code,el);box.appendChild(el);});
 }
 function selProv(c,el){curProv=c;document.querySelectorAll('.prov').forEach(x=>x.classList.remove('active'));el.classList.add('active');loadGames();}
 
 async function loadGames(){
   const grid=$('grid');grid.innerHTML='<div class="loading" style="grid-column:1/-1">…</div>';
   let all=[];
+  const liveSelected = isLive(providers.find(p=>p.code===curProv)||{});
+  if(curCat==='live' || liveSelected){
+    // اللايف: كل مزود = بطاقة لوبي (game_code فارغ يفتح اللوبي المباشر)
+    const list = curProv==='ALL' ? providers : providers.filter(p=>p.code===curProv);
+    all=list.map(p=>({game_code:'',game_name:p.name+' — لايف',provider:p.name,providerCode:p.code,live:true}));
+    $('meta').textContent='لايف كازينو: '+list.length+' مزوّد مباشر. اضغط لفتح الطاولة المباشرة.'+(curProv==='ALL'?'':'');
+    games=all; renderGrid(); return;
+  }
+  const slotList=providers.filter(p=>!isLive(p));
   if(curProv==='ALL'){
-    for(const p of providers.slice(0,8)){
-      const d=await(await fetch('/api/games?provider='+p.code)).json();
-      (d.games||[]).forEach(g=>all.push({...g,provider:p.name,providerCode:p.code}));
+    for(const p of slotList.slice(0,10)){
+      try{const d=await(await fetch('/api/games?provider='+p.code)).json();(d.games||[]).forEach(g=>all.push({...g,provider:p.name,providerCode:p.code}));}catch(e){}
     }
   }else{
     const d=await(await fetch('/api/games?provider='+curProv)).json();
     if(d.blocked){banner('⛔ خادم اللعبة محجوب.',true);grid.innerHTML='';return;}
     all=(d.games||[]).map(g=>({...g,provider:providers.find(x=>x.code===curProv)?.name||curProv,providerCode:curProv}));
   }
-  games=all.filter(g=>g.status===1);
+  games=all.filter(g=>g.status!==0);
   $('meta').textContent='متاح '+games.length.toLocaleString('ar')+' لعبة';
   renderGrid();
 }
 function renderGrid(){
   const q=$('q').value.trim().toLowerCase();
-  const list=q?games.filter(g=>g.game_name.toLowerCase().includes(q)):games;
+  const list=q?games.filter(g=>(g.game_name||'').toLowerCase().includes(q)||(g.provider||'').toLowerCase().includes(q)):games;
   const grid=$('grid');
   if(!list.length){grid.innerHTML='<div class="loading" style="grid-column:1/-1">لا نتائج.</div>';return;}
   grid.innerHTML='';
   list.forEach(g=>{
     const el=document.createElement('div');el.className='g';el.onclick=()=>launch(g);
-    el.innerHTML=(g.banner?`<img loading="lazy" src="${g.banner}" onerror="this.outerHTML='<div class=ph>🎰</div>'"/>`:`<div class="ph">🎰</div>`)
-      +`<div class="play">▶️</div><div class="in"><div class="t">${g.game_name||g.game_code}</div><div class="p">${g.provider||''}</div></div>`;
+    const ph=g.live?'🃏':'🎰';
+    el.innerHTML=(g.banner?`<img loading="lazy" src="${g.banner}" onerror="this.outerHTML='<div class=ph>${ph}</div>'"/>`:`<div class="ph">${ph}</div>`)
+      +`<div class="play">${g.live?'🟢':'▶️'}</div><div class="in"><div class="t">${g.game_name||g.game_code||g.provider}</div><div class="p">${g.provider||''}${g.live?' · مباشر':''}</div></div>`;
     grid.appendChild(el);
   });
 }
@@ -169,16 +198,18 @@ async function launch(g){
   $('gameName').textContent=g.game_name||g.game_code;$('player').classList.add('show');$('frame').src='';$('pBal').textContent='جارٍ الفتح…';
   try{
     const d=await(await fetch('/api/player/launch',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({code:CODE,providerCode:g.providerCode,gameCode:g.game_code,lang:'ar',lobbyUrl:location.origin+'/'})})).json();
+      body:JSON.stringify({code:CODE,providerCode:g.providerCode,gameCode:g.game_code||'',live:!!g.live,lang:'ar',lobbyUrl:location.origin+'/'})})).json();
     if(d.blocked){alert('خادم اللعبة محجوب — تواصل مع الوكيل.');closeGame();return;}
     if(d.launchUrl){
       $('frame').src=d.launchUrl;
       $('pBal').textContent='رصيدك: '+Number(d.balance||0)+(d.balance>0?'':' (للرهان يلزم رصيد)');
-      if(!d.balance) banner('ℹ️ فتحت اللعبة برصيد <b style="color:#ff9a9a">0</b>. جرّب واجهتها، لكن الرهان بأموال يبدأ بعد أن يضيف الوكيل رصيداً لحسابك.');
+      if(!d.balance && !g.live) banner('ℹ️ فتحت اللعبة برصيد <b style="color:#ff9a9a">0</b>. الرهان بأموال يبدأ بعد أن يضيف الوكيل رصيداً لحسابك.');
       else $('banner').style.display='none';
       return;
     }
-    closeGame();banner('🎮 <b>'+(g.game_name||g.game_code)+'</b>: '+(d.msg||'تعذّر الفتح'),true);
+    closeGame();
+    if(g.live) banner('🃏 <b>'+(g.game_name)+'</b>: اللايف كازينو غير مفعّل بعد على هذا الحساب (External/Maintenance). يتطلب تفعيلاً من المزوّد.',true);
+    else banner('🎮 <b>'+(g.game_name||g.game_code)+'</b>: '+(d.msg||'تعذّر الفتح'),true);
   }catch(e){alert('خطأ: '+e.message);closeGame();}
 }
 function closeGame(){$('player').classList.remove('show');$('frame').src='';refreshBalance();}

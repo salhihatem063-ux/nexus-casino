@@ -222,7 +222,8 @@ class GameClient {
     };
     // lobby_url فارغ = "Invalid Parameter" من المزوّد — نرسله فقط إن كان رابطاً صالحاً
     if (lobbyUrl && /^https?:\/\//.test(lobbyUrl)) payload.lobby_url = lobbyUrl;
-    if (gameCode) payload.game_code = gameCode;
+    // game_code صريح فقط إن وُجد (اللايف يُطلق بدونه لفتح اللوبي)
+    if (gameCode && String(gameCode).trim() !== '') payload.game_code = gameCode;
     if (rtp) payload.rtp = rtp;
     return this._call('game_launch', payload);
   }
