@@ -27,6 +27,42 @@ function gwAuth(req, b) {
 
 const game = new GameClient({ gameApiBase: GAME_API, agentCode: AGENT_CODE, token: AGENT_TOKEN, secretKey: AGENT_SECRET, currency: CURRENCY });
 
+// ═══ كتالوج مجمّع لكل المزودين (مع إعادة محاولة عند Rate-Limit وتخزين مؤقت) ═══
+const catalogCache = { at: 0, data: null, building: null };
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+async function gamesWithRetry(providerCode, tries = 4) {
+  for (let i = 0; i < tries; i++) {
+    const r = await game.gameList({ providerCode });
+    if (r && r.status === 1) return (r.games || []).filter(g => g.status !== 0);
+    const msg = String((r && r.msg) || '').toLowerCase();
+    const transient = msg.includes('rate limit') || msg.includes('external') || msg.includes('429');
+    if (!transient) return (r && r.games) || [];
+    await sleep(900 * (i + 1));
+  }
+  return [];
+}
+async function buildCatalog() {
+  if (catalogCache.data && Date.now() - catalogCache.at < 10 * 60 * 1000) return catalogCache.data;
+  if (catalogCache.building) return catalogCache.building;
+  catalogCache.building = (async () => {
+    const prov = await game.providerList();
+    const slotProviders = (prov.providers || []).filter(p => p.type === 'slot' && p.status === 1);
+    const games = []; const providers = [];
+    for (const p of slotProviders) {
+      const gs = await gamesWithRetry(p.code);
+      await sleep(350); // تهدئة بين المزودين لتفادي Rate-Limit
+      providers.push({ code: p.code, name: p.name, count: gs.length });
+      for (const g of gs) {
+        games.push({ providerCode: p.code, providerName: p.name, code: g.game_code, name: g.game_name, banner: g.banner });
+      }
+    }
+    const data = { builtAt: Date.now(), providers, games, total: games.length };
+    catalogCache.data = data; catalogCache.at = Date.now(); catalogCache.building = null;
+    return data;
+  })();
+  return catalogCache.building;
+}
+
 function json(res, code, obj) {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
   res.end(JSON.stringify(obj));
@@ -189,15 +225,23 @@ const server = http.createServer(async (req, res) => {
        تُطلق الألعاب والسبورتس بوك من Nexus عبر خادمنا (IP مُضاف للقائمة البيضاء).
        تحميها بمفتاح مشترك (X-GW-Key). الألعاب برصيد الوكيل الممول. */
 
+    // كتالوج مجمّع لكل ألعاب المزودين (إعادة محاولة + تخزين مؤقت)
+    if (route === 'GET /gw/catalog') {
+      const b = await body(req);
+      if (!gwAuth(req, b)) return json(res, 401, { ok: false, error: 'bad gateway key' });
+      const data = await buildCatalog();
+      return json(res, 200, { ok: true, ...data });
+    }
     // قائمة المزودين المدعومين (للفلترة في المواقع الخارجية)
     if (route === 'GET /gw/providers') {
       const r = await game.providerList();
       return json(res, 200, { ok: r.status === 1, providers: r.providers || [] });
     }
-    // قائمة ألعاب مزود
+    // قائمة ألعاب مزود (مع إعادة محاولة عند Rate-Limit)
     if (route === 'GET /gw/games') {
-      const r = await game.gameList({ providerCode: u.searchParams.get('provider') });
-      return json(res, 200, { ok: r.status === 1, games: r.games || [] });
+      const providerCode = u.searchParams.get('provider');
+      const gs = await gamesWithRetry(providerCode);
+      return json(res, 200, { ok: true, games: gs.map(g => ({ ...g, game_code: g.game_code })) });
     }
     // رصيد لاعب (بالعملتين)
     if (route === 'GET /gw/balance') {
