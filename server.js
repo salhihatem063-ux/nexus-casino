@@ -10,6 +10,7 @@ const { GameClient } = require('./nexus-client');
 const ledger = require('./ledger');
 const cur = require('./currency');
 const ipGuard = require('./ip-guard');
+const keepAlive = require('./keepalive');
 
 const OFFICE_API = process.env.OFFICE_API || 'https://my.nexusggr.dev';
 const GAME_API   = process.env.GAME_API   || 'https://api.nexusggr.dev';
@@ -296,6 +297,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, '0.0.0.0', async () => {
   await cur.refreshRates(OFFICE_API);
   ipGuard.startAutoIpGuard(); // تسجيل تلقائي مستمر لعنوان IP الصادر في القائمة البيضاء لدى Nexus
+  keepAlive.startKeepAlive(); // منع نوم الخدمة المجانية بعد 15 دقيقة خمول (self-ping دوري)
   console.log(`🚀 Nexus app on port ${PORT}`);
   console.log(`   agent=${AGENT_CODE || '(env?)'} | تسوية: ${CURRENCY} | عرض: ${DISPLAY_CURRENCY} | 1 ${CURRENCY}=${cur.rate(CURRENCY, DISPLAY_CURRENCY)} ${DISPLAY_CURRENCY}`);
 });
